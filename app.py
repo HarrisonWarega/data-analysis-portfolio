@@ -41,44 +41,59 @@ if page == "Home":
     st.write("")
 
     projects = list_projects()
+
     if not projects:
         st.info("No projects found. Add folders under `/projects/` with a dataset and notebook.")
     else:
-        # Adjust number of columns based on number of projects
-        cards_per_row = min(3, len(projects)) if len(projects) > 0 else 1
-        rows = (len(projects) + cards_per_row - 1) // cards_per_row
         proj_infos = [project_preview_info(p) for p in projects]
 
-        # Display grid
-        idx = 0
-        for r in range(rows):
-            cols = st.columns(cards_per_row, gap="large")
-            for c in range(cards_per_row):
-                if idx >= len(proj_infos):
-                    cols[c].empty()
+        # If 1 project → single centered column (no empty columns)
+        if len(proj_infos) == 1:
+            col = st.columns([1, 8, 1])[1]  # center the card nicely
+            info = proj_infos[0]
+
+            with col:
+                with st.container():
+                    if info["preview"]:
+                        st.image(info["preview"], use_container_width=True)
+                    else:
+                        st.markdown("🗂️", unsafe_allow_html=True)
+
+                    st.subheader(info["name"].replace("_", " ").title())
+                    st.write(info["description"])
+
+                    if st.button("📂 Open Project", key=f"open_{info['name']}"):
+                        st.session_state["selected_project"] = info["name"]
+                        st.rerun()
+
+        else:
+            # Use multi-column grid for 2 or more projects
+            cards_per_row = min(3, len(proj_infos))
+            rows = (len(proj_infos) + cards_per_row - 1) // cards_per_row
+
+            idx = 0
+            for r in range(rows):
+                cols = st.columns(cards_per_row, gap="large")
+                for c in range(cards_per_row):
+                    if idx >= len(proj_infos):
+                        break
+
+                    info = proj_infos[idx]
+                    with cols[c]:
+                        with st.container():
+                            if info["preview"]:
+                                st.image(info["preview"], use_container_width=True)
+                            else:
+                                st.markdown("🗂️", unsafe_allow_html=True)
+
+                            st.subheader(info["name"].replace("_", " ").title())
+                            st.write(info["description"])
+
+                            if st.button("📂 Open Project", key=f"open_{info['name']}"):
+                                st.session_state["selected_project"] = info["name"]
+                                st.rerun()
+
                     idx += 1
-                    continue
-
-                info = proj_infos[idx]
-                with cols[c]:
-                    # Card container
-                    with st.container():
-                        # thumbnail or placeholder
-                        if info["preview"]:
-                            st.image(info["preview"], use_column_width=True)
-                        else:
-                            st.markdown("🗂️", unsafe_allow_html=True)
-
-                        st.subheader(info["name"].replace("_", " ").title())
-                        st.write(info["description"])
-
-                        # small meta row
-                        st.write("")
-                        open_key = f"open_{info['name']}"
-                        if st.button("📂 Open Project", key=open_key):
-                            st.session_state["selected_project"] = info["name"]
-                            st.rerun()
-                idx += 1
 
     st.markdown("---")
     st.markdown("Tip: Add `dataset.csv`, `notebook.html` and `video.txt` to `/projects/<project_name>/` to populate each project page.")
