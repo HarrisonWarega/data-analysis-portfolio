@@ -200,7 +200,8 @@ elif page == "Upload Dataset":
 # -------------------------
 elif page == "About":
     st.title("About This Portfolio")
-    st.write("""
+    st.write(
+"""
 I am passionate about Data Science, Machine Learning, and Artificial Intelligence —
 building analyses, models, and insights that help uncover patterns, solve problems,
 and drive meaningful decisions. This portfolio represents my ongoing journey in
@@ -214,4 +215,5 @@ understanding data deeply and communicating it clearly.
   - `notebook.html` — an exported Jupyter Notebook showing the work  
   - `video.txt` — a link or local filename for the presentation video  
 - The site automatically reads and displays these resources in an organized layout.
-""")
+"""
+    )
