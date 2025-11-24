@@ -38,7 +38,8 @@ page = st.sidebar.radio("Go to", ["Home", "Projects", "Upload Dataset", "About"]
 if page == "Home":
     st.title("📊 Data Analysis Portfolio")
     st.write("Welcome! Explore my datasets, notebooks, analyses, and dashboards.")
-    st.write("")
+    #st.write("")
+    st.space("small")  # Add a small space instead of a full line break
 
     projects = list_projects()
 
