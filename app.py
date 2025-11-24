@@ -201,17 +201,17 @@ elif page == "Upload Dataset":
 elif page == "About":
     st.title("About This Portfolio")
     st.write("""
-    I am passionate about Data Science, Machine Learning, and Artificial Intelligence — 
-    building analyses, models, and insights that help uncover patterns, solve problems, 
-    and drive meaningful decisions. This portfolio represents my ongoing journey in 
-    understanding data deeply and communicating it clearly.
+I am passionate about Data Science, Machine Learning, and Artificial Intelligence —
+building analyses, models, and insights that help uncover patterns, solve problems,
+and drive meaningful decisions. This portfolio represents my ongoing journey in
+understanding data deeply and communicating it clearly.
 
-    **Portfolio Structure (How to Explore This Site):**
+**Portfolio Structure (How to Explore This Site):**
 
-    - Each project lives under `/projects/<project_name>/`
-    - Inside each project folder you’ll find:
-      - `dataset.csv` — the dataset used in the analysis  
-      - `notebook.html` — an exported Jupyter Notebook showing the work  
-      - `video.txt` — a link or local filename for the presentation video  
-    - The site automatically reads and displays these resources in an organized layout  
-    """)
+- Each project lives under `/projects/<project_name>/`
+- Inside each project folder you’ll find:
+  - `dataset.csv` — the dataset used in the analysis  
+  - `notebook.html` — an exported Jupyter Notebook showing the work  
+  - `video.txt` — a link or local filename for the presentation video  
+- The site automatically reads and displays these resources in an organized layout.
+""")
