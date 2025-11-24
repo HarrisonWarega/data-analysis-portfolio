@@ -44,7 +44,8 @@ if page == "Home":
     if not projects:
         st.info("No projects found. Add folders under `/projects/` with a dataset and notebook.")
     else:
-        cards_per_row = 3
+        # Adjust number of columns based on number of projects
+        cards_per_row = min(3, len(projects)) if len(projects) > 0 else 1
         rows = (len(projects) + cards_per_row - 1) // cards_per_row
         proj_infos = [project_preview_info(p) for p in projects]
 
@@ -76,7 +77,7 @@ if page == "Home":
                         open_key = f"open_{info['name']}"
                         if st.button("📂 Open Project", key=open_key):
                             st.session_state["selected_project"] = info["name"]
-                            st.experimental_rerun()
+                            st.rerun()
                 idx += 1
 
     st.markdown("---")
