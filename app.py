@@ -45,14 +45,14 @@ if page == "Home":
 
     if not proj_infos:
         st.info("No projects found. Add folders under `/projects/` with a dataset and notebook.")
-    else:
-        num_projects = len(proj_infos)
 
-        # ---------- CASE 1: Only ONE project ----------
-        if num_projects == 1:
-            info = proj_infos[0]
-            col = st.columns([1, 6, 1])[1]  # center it nicely
-            with col:
+    else:
+        # Responsive: 3 columns max, but adjusts automatically
+        cols = st.columns(3, gap="large")
+        col_index = 0
+
+        for info in proj_infos:
+            with cols[col_index]:
                 with st.container(border=True):
                     if info["preview"]:
                         st.image(info["preview"], use_container_width=True)
@@ -66,53 +66,8 @@ if page == "Home":
                         st.session_state["selected_project"] = info["name"]
                         st.rerun()
 
-        # ---------- CASE 2: TWO projects ----------
-        elif num_projects == 2:
-            cols = st.columns(2, gap="large")
-            for idx, info in enumerate(proj_infos):
-                with cols[idx]:
-                    with st.container(border=True):
-                        if info["preview"]:
-                            st.image(info["preview"], use_container_width=True)
-                        else:
-                            st.markdown("🗂️", unsafe_allow_html=True)
-
-                        st.subheader(info["name"].replace("_", " ").title())
-                        st.write(info["description"])
-
-                        if st.button(f"📂 Open {info['name']}", key=f"open_{info['name']}"):
-                            st.session_state["selected_project"] = info["name"]
-                            st.rerun()
-
-        # ---------- CASE 3+: Three or more projects ----------
-        else:
-            # Use 3 columns for grid
-            cards_per_row = 3
-            rows = (num_projects + cards_per_row - 1) // cards_per_row
-
-            idx = 0
-            for r in range(rows):
-                cols = st.columns(cards_per_row, gap="large")
-                for c in range(cards_per_row):
-                    if idx >= num_projects:
-                        break
-
-                    info = proj_infos[idx]
-                    with cols[c]:
-                        with st.container(border=True):
-                            if info["preview"]:
-                                st.image(info["preview"], use_container_width=True)
-                            else:
-                                st.markdown("🗂️", unsafe_allow_html=True)
-
-                            st.subheader(info["name"].replace("_", " ").title())
-                            st.write(info["description"])
-
-                            if st.button(f"📂 Open {info['name']}", key=f"open_{info['name']}"):
-                                st.session_state["selected_project"] = info["name"]
-                                st.rerun()
-
-                    idx += 1
+            # move to next column
+            col_index = (col_index + 1) % 3
 
 # -------------------------
 # Projects page (select + tabs)
