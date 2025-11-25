@@ -22,7 +22,7 @@ INDUSTRY_DIRS = {
     "Other": "other"
 }
 
-# --- Utilities --------------------------------------------------------------
+# ---------- Utilities ----------
 def list_category_folders():
     """Return available categories that exist on disk (display_name, folder_name)."""
     available = []
@@ -32,14 +32,12 @@ def list_category_folders():
     return available
 
 def list_projects_in_folder(folder_name):
-    """Return sorted list of project folder Path objects inside the given category folder."""
     cat_path = PROJECTS_DIR / folder_name
     if not cat_path.exists():
         return []
     return sorted([d for d in cat_path.iterdir() if d.is_dir()])
 
 def gather_all_projects():
-    """Collect all projects across categories. Returns list of dicts with category info."""
     items = []
     for label, folder in list_category_folders():
         projects = list_projects_in_folder(folder)
@@ -61,7 +59,18 @@ def read_file_text(path: Path):
     except Exception:
         return ""
 
-# Ensure session keys exist
+# Read owner-controlled highlights list (one folder name per line, e.g. business_sales)
+def read_home_highlights():
+    path = BASE / "home_highlights.txt"
+    if not path.exists():
+        return []
+    lines = [ln.strip() for ln in path.read_text(encoding="utf-8").splitlines()]
+    # Remove empty lines and comments
+    lines = [ln for ln in lines if ln and not ln.startswith("#")]
+    # Limit to 3 entries
+    return lines[:3]
+
+# Ensure session keys
 if "selected_project" not in st.session_state:
     st.session_state["selected_project"] = None
 if "selected_category" not in st.session_state:
@@ -69,25 +78,27 @@ if "selected_category" not in st.session_state:
 if "navigate_to" not in st.session_state:
     st.session_state["navigate_to"] = None
 
-# Sidebar navigation (the radio is the primary control, but we also allow programmatic navigation)
+# Sidebar navigation
 sidebar_choice = st.sidebar.radio("Go to", ["Home", "Projects", "Upload Dataset"])
-# Programmatic navigation override
 if st.session_state.get("navigate_to"):
     page = st.session_state.pop("navigate_to")
 else:
     page = sidebar_choice
 
 # -------------------------
-# HOME (landing page: introduces you + CTA to projects)
+# HOME (landing page)
 # -------------------------
 if page == "Home":
     st.title("📊 Data Analysis Portfolio")
-    st.markdown(
-        "Welcome! Explore my datasets, notebooks, analyses, and dashboards. "
-        "I am passionate about Data Science, Machine Learning, and Artificial Intelligence — "
-        "building analyses, models, and insights that help uncover patterns, solve problems, "
-        "and drive meaningful decisions."
-    )
+
+    st.markdown("""
+Welcome! I am passionate about Data Science, Machine Learning, and Artificial Intelligence — 
+building analyses, models, and insights that help uncover patterns, solve problems, 
+and drive meaningful decisions.
+""")
+
+    st.markdown("### Explore my datasets, notebooks, analyses, and dashboards.")
+
     st.write("")
     st.markdown("**Portfolio Structure (How to Explore This Site):**")
     st.markdown("""
@@ -99,8 +110,6 @@ if page == "Home":
 - The Projects view groups projects by industry/category.
 """)
 
-    st.write("")
-    # CTA to Projects
     if st.button("📁 See my projects"):
         st.session_state["navigate_to"] = "Projects"
         st.rerun()
@@ -108,32 +117,47 @@ if page == "Home":
     st.write("---")
     st.write("Below are quick highlights of the projects currently in the repository:")
 
-    all_projects = gather_all_projects()
-    if not all_projects:
-        st.info("No projects found. Add category subfolders and project folders under `/projects/`.")
+    # Owner-controlled highlights (folder names, e.g., business_sales)
+    highlight_folders = read_home_highlights()
+    highlights = []
+    for folder in highlight_folders:
+        projects = list_projects_in_folder(folder)
+        if projects:
+            p = projects[0]  # representative project (first one)
+            preview = p / "preview.png"
+            highlights.append({
+                "folder": folder,
+                "path": p,
+                "name": p.name,
+                "preview": str(preview) if preview.exists() else None,
+                "label": next((lbl for lbl, f in list_category_folders() if f == folder), folder)
+            })
+
+    if not highlights:
+        st.info("No highlights configured. Create `home_highlights.txt` in the repo root with category folder names (one per line).")
     else:
-        # Render a simple 3-column flowing grid that fills left-to-right then next row.
-        # This approach avoids creating large empty rows because we always produce 3 columns
-        # and fill them in sequence (no row-height stretching).
-        cols = st.columns(3, gap="large")
-        col_index = 0
-        for info in all_projects:
-            with cols[col_index]:
+        # Render highlights in up to 3 columns (small cards)
+        cols = st.columns(len(highlights), gap="large")
+        for i, info in enumerate(highlights):
+            with cols[i]:
                 with st.container(border=True):
+                    # smaller preview: set width param
                     if info["preview"]:
-                        st.image(info["preview"], use_container_width=True)
+                        try:
+                            st.image(info["preview"], width=340)
+                        except Exception:
+                            st.markdown("🗂️")
                     else:
                         st.markdown("🗂️")
-                    st.subheader(info["name"].replace("_", " ").title())
-                    st.caption(f"{info['category_label']} — {info['path'].name}")
-                    st.write(info["description"])
-                    # The Open button now navigates to Projects and pre-selects the category + project
-                    if st.button(f"📂 Open {info['name']}", key=f"open_{info['category_folder']}_{info['name']}"):
-                        st.session_state["selected_category"] = info["category_folder"]
+                    # smaller title style
+                    st.markdown(f"### {info['name'].replace('_',' ').title()}")
+                    st.caption(f"{info['label']} — {info['name']}")
+                    st.write("A short description of this project. Replace with your own.")
+                    if st.button(f"📂 Open {info['name']}", key=f"highlight_open_{info['folder']}_{info['name']}"):
+                        st.session_state["selected_category"] = info["folder"]
                         st.session_state["selected_project"] = info["name"]
                         st.session_state["navigate_to"] = "Projects"
                         st.rerun()
-            col_index = (col_index + 1) % 3
 
 # -------------------------
 # Projects page (category -> project -> tabs)
@@ -141,19 +165,16 @@ if page == "Home":
 elif page == "Projects":
     st.title("📁 Projects")
 
-    # categories to display (label -> folder)
     categories = list_category_folders()
     if not categories:
-        st.info("No categories found under `/projects/`. Create category subfolders (e.g., business_sales, health).")
+        st.info("No categories found under /projects/. Create category subfolders (e.g., business_sales, health).")
     else:
         labels = [label for (label, folder) in categories]
         folders = {label: folder for (label, folder) in categories}
 
-        # Preselect category if navigated from home
         pre_cat_folder = st.session_state.get("selected_category", None)
         pre_cat_label = None
         if pre_cat_folder:
-            # find matching label
             for label, folder in categories:
                 if folder == pre_cat_folder:
                     pre_cat_label = label
@@ -162,15 +183,13 @@ elif page == "Projects":
         selected_label = st.selectbox("Choose a Category", labels, index=(labels.index(pre_cat_label) if pre_cat_label in labels else 0))
         selected_folder = folders[selected_label]
         st.write("")
-        # description of what to expect in this category (basic generic message)
         st.info(f"Projects in **{selected_label}**. Each project folder contains dataset(s), exported notebook(s), and a demo video. Click a project to view its files and dashboard.")
 
-        # list projects in this category
         proj_list = list_projects_in_folder(selected_folder)
         if not proj_list:
-            st.warning("No projects in this category yet. Create a folder under `/projects/{selected_folder}/` and add your files.")
+            st.warning(f"No projects in {selected_folder} yet.")
         else:
-            # Show projects as cards in two columns (more space for details)
+            # Two-column listing, but with reduced image width to shrink cards
             cols = st.columns(2, gap="large")
             for i, p in enumerate(proj_list):
                 c = cols[i % 2]
@@ -178,24 +197,25 @@ elif page == "Projects":
                     preview = p / "preview.png"
                     with st.container(border=True):
                         if preview.exists():
-                            st.image(str(preview), use_container_width=True)
+                            try:
+                                st.image(str(preview), width=320)
+                            except Exception:
+                                st.markdown("🗂️")
                         else:
                             st.markdown("🗂️")
-                        st.subheader(p.name.replace("_", " ").title())
+                        st.markdown(f"### {p.name.replace('_',' ').title()}")
                         st.write("A short description of this project. Replace with your own.")
                         if st.button(f"Open {p.name}", key=f"proj_{selected_folder}_{p.name}"):
                             st.session_state["selected_project"] = p.name
                             st.session_state["selected_category"] = selected_folder
-                            # jump to the project details area below (we re-render same page)
                             st.rerun()
 
             st.write("---")
-            # If a project has been selected, show its tabs
             chosen = st.session_state.get("selected_project", None)
             if chosen:
                 proj_path = PROJECTS_DIR / selected_folder / chosen
                 if proj_path.exists():
-                    st.header(f"{chosen.replace('_', ' ').title()}")
+                    st.header(f"{chosen.replace('_',' ').title()}")
                     tabs = st.tabs(["🎥 Video", "📁 Dataset", "📓 Notebook", "📊 Dashboard", "🔧 Files"])
 
                     # Video tab
@@ -238,7 +258,7 @@ elif page == "Projects":
                                 st.write(f"**{nb.name}**")
                                 html = read_file_text(nb)
                                 if html:
-                                    st.components.v1.html(html, height=700)
+                                    st.components.v1.html(html, height=600)
                                 else:
                                     st.warning(f"Could not read {nb.name}")
                                 st.markdown("---")
@@ -256,11 +276,10 @@ elif page == "Projects":
                             numeric_cols = df.select_dtypes(include="number").columns.tolist()
                             if numeric_cols:
                                 col = numeric_cols[0]
-                                st.write(f"**Example chart — distribution of `{col}`**")
                                 chart = alt.Chart(df).mark_bar().encode(
                                     alt.X(f"{col}:Q", bin=alt.Bin(maxbins=30)),
                                     y='count()'
-                                ).properties(height=300)
+                                ).properties(height=260)
                                 st.altair_chart(chart, use_container_width=True)
                             else:
                                 st.info("No numeric columns available for charts in the first dataset.")
